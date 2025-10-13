@@ -1,0 +1,8 @@
+Ortam Değişkenleri
+.env
+
+Vektör Veritabanı ve Çalışma Dosyaları
+/chroma_db/
+/venv/
+pycache/
+*.pyc
