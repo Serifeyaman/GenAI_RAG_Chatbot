@@ -1,11 +1,19 @@
-# LLM ve Embedding Modeli için
-google-genai
+# ==============================================================================
+# PROJE GEREKSİNİMLERİ (RAG Chatbot)
+# Bu kütüphaneler, projenin Çalışma Kılavuzu'nun ilk adımıdır.
+# ==============================================================================
 
-# RAG Framework için
+# LLM ve Embedding Modeli için
+google-genai                          # Gemini API'sini kullanmak için temel Google kütüphanesi
+langchain-google-genai                # LangChain ve Gemini entegrasyonu için adaptör
+
+# RAG Framework ve Temel Yapı için
 langchain
+langchain-community                   # LangChain'in yardımcı araçları (Loader'lar)
+langchain-text-splitters              # Dokümanları parçalara (chunks) ayırmak için
 
 # Vektör Veritabanı için
-chromadb
+chromadb                              # Vektörleri kaydetmek ve geri almak (retrieve) için
 
-# Dokümanları okumak için
-pypdf
+# Veri İşleme ve Okuma için
+datasets                              # Hugging Face veri setlerini indirmek ve işlemek için
