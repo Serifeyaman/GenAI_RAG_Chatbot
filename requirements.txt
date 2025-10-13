@@ -1,0 +1,11 @@
+# LLM ve Embedding Modeli için
+google-genai
+
+# RAG Framework için
+langchain
+
+# Vektör Veritabanı için
+chromadb
+
+# Dokümanları okumak için
+pypdf
