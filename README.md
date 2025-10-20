@@ -6,7 +6,7 @@
 
 Next.js dokümantasyonu üzerinde **RAG (Retrieval-Augmented Generation)** teknolojisi kullanarak akıllı soru-cevap sistemi. Google Gemini 2.0 Flash modeli ile güçlendirilmiş, Streamlit arayüzüne sahip modern bir chatbot uygulaması.
 
-🌐 **[Canlı Demo](https://serifezabungenairagchatbot-dmxspfrd8srzvewxgnytdy.streamlit.app/)** - Streamlit Community Cloud üzerinden yayınlanmaktadır.
+🌐 **[Canlı Demo](https://genairagchatbot-serifezabun.streamlit.app/)** - Streamlit Community Cloud üzerinden yayınlanmaktadır.
 
 ---
 
