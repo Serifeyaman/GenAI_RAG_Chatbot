@@ -1,115 +1,266 @@
 import streamlit as st
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains import RetrievalQA
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import SentenceTransformerEmbeddings
-from datasets import load_dataset
-from langchain.docstore.document import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
+from datasets import load_dataset
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.docstore.document import Document
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+from langchain.llms.base import LLM
+from typing import Optional, List, Any
+import google.generativeai as genai
+import warnings
+warnings.filterwarnings('ignore')
 
-# --- RAG Adım 1: Veri Yükleme ve Parçalama ---
-# Bu kısım, Streamlit uygulaması ilk başlatıldığında çalışacak ve veriyi yükleyip parçalayacaktır.
-# Veri yükleme ve parçalama işlemini önbelleğe alarak (cache) uygulamanın her yeniden yüklenmesinde tekrar çalışmasını engelliyoruz.
-@st.cache_resource
-def load_and_split_data(subset_size=2000):
-    st.write("1. Next.js Veri Seti Yükleniyor (Hugging Face kütüphanesi ile)...")
-    hf_dataset = load_dataset("ChavyvAkvar/Next.js-Dataset-Converted", split="train")
-    hf_dataset_subset = hf_dataset.select(range(subset_size))
-    st.write(f"Veri seti boyutu {subset_size} dokümanla sınırlandırıldı.")
+# Sayfa yapılandırması
+st.set_page_config(
+    page_title="Next.js RAG Asistanı - Gemini 2.0",
+    page_icon="🤖",
+    layout="wide"
+)
 
-    documents = []
-    for item in hf_dataset_subset:
-        if 'messages' in item and item['messages'] and isinstance(item['messages'], list) and isinstance(item['messages'][0], dict):
-            content = item['messages'][0].get('content')
-            if content:
-                documents.append(
-                    Document(
-                        page_content=content,
-                        metadata={"source": "Next.js-Dataset", "index": str(len(documents))}
-                    )
-                )
-
-    st.write(f"Yüklenen Toplam Doküman Sayısı (Kısıtlanmış): {len(documents)}")
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
-    )
-    texts = text_splitter.split_documents(documents)
-    st.write(f"Oluşturulan Toplam Metin Parçası Sayısı: {len(texts)}")
-    return texts
-
-# Veriyi yükle ve parçala
-texts = load_and_split_data(subset_size=2000)
-
-# --- RAG Adım 2: Embedding ve Vektör Veritabanı (ChromaDB) Oluşturma ---
-# Embedding modelini ve vektör veritabanını önbelleğe alıyoruz.
-@st.cache_resource
-def create_vectorstore(_texts):
-    st.write("2. Embedding (Yerel Model) ve ChromaDB Oluşturuluyor...")
-    embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
-    vectorstore = Chroma.from_documents(
-        documents=_texts,
-        embedding=embeddings,
-        persist_directory="./chroma_db" # Yerel olarak kaydedilecek
-    )
-    st.write("Vektör Veritabanı Başarıyla Oluşturuldu ve Retriever Hazır.")
-    return vectorstore
-
-# Vektör veritabanını oluştur
-vectorstore = create_vectorstore(texts)
-retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
-
-# --- RAG Adım 3: Dil Modeli (Gemini) ve RAG Zinciri Kurulumu ---
-# LLM ve RAG zincirini önbelleğe alıyoruz.
-@st.cache_resource
-def setup_rag_chain(_retriever):
-    st.write("3. Dil Modeli (Gemini) ve RAG Zinciri Kuruluyor...")
-    # API Anahtarını ortam değişkeninden al
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-         st.error("HATA: GEMINI_API_KEY ortam değişkeni tanımlanmamış.")
-         st.stop() # Uygulamayı durdur
-
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7, google_api_key=api_key)
-
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=_retriever,
-        return_source_documents=True
-    )
-    st.write("Dil Modeli ve RAG Zinciri Başarıyla Kuruldu.")
-    return qa_chain
-
-# RAG zincirini kur
-qa_chain = setup_rag_chain(retriever)
-
-# --- RAG Adım 4: Sorgu Çalıştırma (Streamlit Arayüzü Üzerinden) ---
-st.title("Next.js RAG Sorgulama Uygulaması")
-st.info("Next.js veri seti üzerinde RAG (Retrieval Augmented Generation) kullanarak sorularınıza yanıt bulun.")
-
-query = st.text_input("Lütfen Next.js hakkında bir soru sorun:", key="rag_query_input")
-
-if query:
-    with st.spinner("Yanıt aranıyor..."):
+# Gemini LLM Wrapper
+class GeminiLLM(LLM):
+    model_name: str = "gemini-2.0-flash-exp"
+    temperature: float = 0.7
+    
+    @property
+    def _llm_type(self) -> str:
+        return "gemini"
+    
+    def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
         try:
-            response = qa_chain.invoke({"query": query})
-            st.subheader("Yanıt:")
-            st.write(response.get("result", "Yanıt alınamadı."))
-
-            if "source_documents" in response and response["source_documents"]:
-                st.subheader("Kaynak Dokümanlar:")
-                for i, doc in enumerate(response["source_documents"]):
-                    st.write(f"**Kaynak {i+1}:**")
-                    st.write(f"- Kaynak: {doc.metadata.get('source', 'Bilinmiyor')}")
-                    st.write(f"  İçerik: {doc.page_content[:300]}...") # İlk 300 karakteri göster
-            else:
-                st.info("Bu sorgu için kaynak doküman bulunamadı.")
-
+            model = genai.GenerativeModel(self.model_name)
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=self.temperature,
+                    max_output_tokens=2048,
+                )
+            )
+            return response.text
         except Exception as e:
-            st.error(f"Sorgu çalıştırılırken bir hata oluştu: {e}")
+            return f"Hata oluştu: {str(e)}"
+    
+    @property
+    def _identifying_params(self) -> dict:
+        return {"model_name": self.model_name, "temperature": self.temperature}
 
-st.markdown("---")
-st.markdown("Bu uygulama bir RAG (Retrieval Augmented Generation) örneğidir.")
+# Önbellek fonksiyonları
+@st.cache_resource
+def load_and_prepare_data():
+    """Veri setini yükle ve hazırla"""
+    with st.spinner("Veri seti yükleniyor..."):
+        # Hugging Face veri setini yükle (ilk 100 döküman)
+        dataset = load_dataset("ChavyvAkvar/Next.js-Dataset-Converted", split="train[:10]")
+        
+        # Dökümanları hazırla
+        documents = []
+        for item in dataset:
+            # Veri setindeki text alanını kullan
+            text_content = item.get('text', '') or item.get('content', '') or str(item)
+            
+            if text_content and len(text_content.strip()) > 0:
+                doc = Document(
+                    page_content=text_content,
+                    metadata={"source": "Next.js Dataset"}
+                )
+                documents.append(doc)
+        
+        st.success(f"✅ {len(documents)} döküman yüklendi!")
+        return documents
+
+@st.cache_resource
+def create_vector_store(_documents):
+    """Vector store oluştur"""
+    with st.spinner("Embeddings oluşturuluyor ve vektör veritabanı hazırlanıyor..."):
+        # Text splitter
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=100,
+            length_function=len
+        )
+        
+        # Metinleri parçala
+        texts = text_splitter.split_documents(_documents)
+        st.info(f"📄 {len(texts)} metin parçası oluşturuldu")
+        
+        # Embeddings modeli
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={'device': 'cpu'}
+        )
+        
+        # FAISS vector store
+        vectorstore = FAISS.from_documents(texts, embeddings)
+        
+        st.success("✅ Vektör veritabanı hazır!")
+        return vectorstore
+
+def get_qa_chain(vectorstore, gemini_api_key, temperature):
+    """QA chain oluştur"""
+    try:
+        # Gemini API yapılandır
+        genai.configure(api_key=gemini_api_key)
+        
+        # Gemini LLM
+        llm = GeminiLLM(temperature=temperature)
+        
+        # Prompt template
+        prompt_template = """Aşağıdaki bağlam bilgisini kullanarak soruyu yanıtla. Eğer cevabı bağlamda bulamazsan, bilmiyorum de ve tahminde bulunma.
+
+Bağlam:
+{context}
+
+Soru: {question}
+
+Detaylı Cevap (Türkçe):"""
+        
+        PROMPT = PromptTemplate(
+            template=prompt_template,
+            input_variables=["context", "question"]
+        )
+        
+        # RetrievalQA chain
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=llm,
+            chain_type="stuff",
+            retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
+            return_source_documents=True,
+            chain_type_kwargs={"prompt": PROMPT}
+        )
+        
+        return qa_chain
+    except Exception as e:
+        st.error(f"QA Chain oluşturulurken hata: {str(e)}")
+        return None
+
+def main():
+    st.title("🤖 Next.js RAG Asistanı - Gemini 2.0")
+    st.markdown("*Google Gemini 2.0 Flash ile güçlendirilmiştir*")
+    st.markdown("---")
+    
+    # Sidebar
+    with st.sidebar:
+        st.header("⚙️ Ayarlar")
+        
+        # Gemini API Key
+        gemini_api_key = st.text_input(
+            "Google Gemini API Key",
+            type="password",
+            help="Google AI Studio'dan ücretsiz API key alabilirsiniz: https://aistudio.google.com/apikey"
+        )
+        
+        # Temperature ayarı
+        temperature = st.slider(
+            "Temperature (Yaratıcılık)",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.1,
+            help="Düşük değer: Daha deterministik, Yüksek değer: Daha yaratıcı"
+        )
+        
+        st.markdown("---")
+        st.markdown("### 📊 Model Bilgisi")
+        st.info("**Model:** Gemini 2.0 Flash Exp\n\n**Özellikler:**\n- Hızlı yanıt\n- Türkçe desteği\n- Gelişmiş anlama")
+        
+        st.markdown("### 🔗 Kaynaklar")
+        st.markdown("- [Google AI Studio](https://aistudio.google.com)")
+        st.markdown("- [Gemini API Docs](https://ai.google.dev)")
+        st.markdown("- [Next.js Dataset](https://huggingface.co/datasets/ChavyvAkvar/Next.js-Dataset-Converted)")
+    
+    # Ana içerik
+    if not gemini_api_key:
+        st.warning("⚠️ Lütfen Google Gemini API Key'inizi yan panelden girin.")
+        st.info("👉 Ücretsiz API key almak için: https://aistudio.google.com/apikey")
+        
+        # API key alma rehberi
+        with st.expander("📖 API Key Nasıl Alınır?"):
+            st.markdown("""
+            1. https://aistudio.google.com/apikey adresine gidin
+            2. Google hesabınızla giriş yapın
+            3. "Create API Key" butonuna tıklayın
+            4. Oluşturulan API key'i kopyalayın
+            5. Sol paneldeki alana yapıştırın
+            """)
+        return
+    
+    # Veri setini yükle
+    try:
+        documents = load_and_prepare_data()
+        
+        # Vector store oluştur
+        vectorstore = create_vector_store(documents)
+        
+        # QA chain oluştur
+        qa_chain = get_qa_chain(vectorstore, gemini_api_key, temperature)
+        
+        if qa_chain is None:
+            return
+        
+        st.markdown("---")
+        st.success("✅ Sistem hazır! Gemini 2.0 ile sorularınızı sorabilirsiniz.")
+        
+        # Örnek sorular
+        with st.expander("💡 Örnek Sorular"):
+            st.markdown("""
+            - Next.js'de server-side rendering nasıl yapılır?
+            - App Router ve Pages Router arasındaki farklar nelerdir?
+            - Next.js'de API route'ları nasıl oluşturulur?
+            - Static Site Generation (SSG) nedir?
+            - Next.js'de middleware nasıl kullanılır?
+            """)
+        
+        # Soru-cevap bölümü
+        st.markdown("### 💬 Soru Sorun")
+        
+        question = st.text_area(
+            "Sorunuz:",
+            placeholder="Örnek: Next.js'de server-side rendering nasıl yapılır?",
+            height=100
+        )
+        
+        col1, col2, col3 = st.columns([1, 1, 4])
+        with col1:
+            ask_button = st.button("🔍 Ara", use_container_width=True, type="primary")
+        with col2:
+            clear_button = st.button("🗑️ Temizle", use_container_width=True)
+        
+        if clear_button:
+            st.rerun()
+        
+        if ask_button and question:
+            with st.spinner("🤔 Gemini 2.0 düşünüyor..."):
+                try:
+                    result = qa_chain({"query": question})
+                    
+                    # Cevabı göster
+                    st.markdown("### 📝 Cevap")
+                    st.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #4CAF50;">
+                    {result['result']}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Kaynak dökümanları göster
+                    if 'source_documents' in result and result['source_documents']:
+                        st.markdown("### 📚 Kaynak Dökümanlar")
+                        for i, doc in enumerate(result['source_documents'], 1):
+                            with st.expander(f"📄 Kaynak {i}"):
+                                st.text(doc.page_content[:800] + "..." if len(doc.page_content) > 800 else doc.page_content)
+                
+                except Exception as e:
+                    st.error(f"❌ Hata oluştu: {str(e)}")
+                    st.info("💡 API key'inizi kontrol edin veya birkaç saniye bekleyip tekrar deneyin.")
+        
+        elif ask_button and not question:
+            st.warning("⚠️ Lütfen bir soru girin.")
+    
+    except Exception as e:
+        st.error(f"❌ Uygulama başlatılırken hata: {str(e)}")
+        st.info("Lütfen requirements.txt dosyasındaki tüm paketlerin kurulu olduğundan emin olun.")
+
+if __name__ == "__main__":
+    main()

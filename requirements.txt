@@ -1,10 +1,35 @@
-streamlit
-langchain
-langchain-core
-langchain-google-genai
-langchain-community
-langchain-text-splitters
-datasets
-sentence-transformers
-pydantic>=2.0.0
-chromadb
+# Streamlit
+streamlit==1.28.0
+
+# LangChain ve bağımlılıkları (uyumlu versiyonlar)
+langchain==0.1.20
+langchain-community==0.0.38
+langchain-core==0.1.52
+langsmith==0.1.17
+
+# Google Gemini
+google-generativeai==0.3.2
+
+# Hugging Face
+huggingface-hub==0.19.4
+datasets==2.15.0
+sentence-transformers==2.2.2
+transformers==4.35.2
+
+# Vector Store
+faiss-cpu==1.7.4
+
+# Diğer bağımlılıklar
+numpy==1.24.3
+pandas==2.0.3
+torch==2.0.1
+tokenizers==0.15.0
+tqdm==4.66.1
+requests==2.31.0
+urllib3==2.0.7
+certifi==2023.7.22
+
+# Yardımcı kütüphaneler
+python-dotenv==1.0.0
+tiktoken==0.5.2
+typing-extensions==4.8.0
