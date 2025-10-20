@@ -1,24 +1,10 @@
-# ==============================================================================
-# PROJE GEREKSİNİMLERİ (RAG Chatbot)
-# Bu kütüphaneler, projenin Çalışma Kılavuzu'nun ilk adımıdır.
-# ==============================================================================
-
-# LLM ve Embedding Modeli için
-google-genai                          # Gemini API'sini kullanmak için temel Google kütüphanesi
-langchain-google-genai                # LangChain ve Gemini entegrasyonu için adaptör
-
-# RAG Framework ve Temel Yapı için
+streamlit
 langchain
-langchain-community                   # LangChain'in yardımcı araçları (Loader'lar)
-langchain-text-splitters              # Dokümanları parçalara (chunks) ayırmak için
-
-# Vektör Veritabanı için
-chromadb                              # Vektörleri kaydetmek ve geri almak (retrieve) için
-
-# Veri İşleme ve Okuma için
-datasets                              # Hugging Face veri setlerini indirmek ve işlemek için
-
-# Güvenlik ve Ortam Değişkeni Yönetimi için
-python-dotenv                         # .env dosyasını okumak için - 
-
-# .env.example dosyasında belirtildiği .env oluşturulmalıdır
+langchain-core
+langchain-google-genai
+langchain-community
+langchain-text-splitters
+datasets
+sentence-transformers
+pydantic>=2.0.0
+chromadb
