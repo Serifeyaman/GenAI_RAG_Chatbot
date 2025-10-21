@@ -235,8 +235,7 @@ def add_to_chat_history(role, content, sources=None):
 
 def main():
     """Main application function"""
-    st.title("🤖 Next.js RAG Assistant - Gemini 2.0")
-    st.markdown("*Powered by Google Gemini 2.0 Flash*")
+    st.title("🤖 Next.js RAG Assistant")
     st.markdown("---")
     
     # Sidebar configuration
@@ -261,24 +260,11 @@ def main():
         )
         
         st.markdown("---")
-        
-        # Chat history controls
-        st.markdown("### 💬 Chat History")
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🗑️ Clear Chat", use_container_width=True):
-                st.session_state.chat_history = []
-                st.rerun()
-        with col2:
-            st.metric("Messages", len(st.session_state.chat_history))
-        
-        st.markdown("---")
         st.markdown("### 📊 Model Information")
-        st.info("**Model:** Gemini 2.0 Flash Exp\n\n**Features:**\n- Fast responses\n- Turkish support\n- Advanced understanding")
+        st.info("**Model:** Gemini 2.0 Flash Exp")
         
         st.markdown("### 🔗 Resources")
         st.markdown("- [Google AI Studio](https://aistudio.google.com)")
-        st.markdown("- [Gemini API Docs](https://ai.google.dev)")
         st.markdown("- [Next.js Dataset](https://huggingface.co/datasets/ChavyvAkvar/Next.js-Dataset-Converted)")
     
     # Main content area

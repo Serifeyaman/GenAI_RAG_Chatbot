@@ -356,7 +356,7 @@ GEMINI_API_KEY = "your-api-key-here"
 
 ---
 
-## 🙏 Teşekkürler
+## 🤝 Kullanılan Kaynaklar
 
 - [Google Gemini](https://deepmind.google/technologies/gemini/) - LLM API
 - [LangChain](https://www.langchain.com/) - RAG framework
