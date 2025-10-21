@@ -19,7 +19,7 @@ Next.js dokümantasyonu üzerinde **RAG (Retrieval-Augmented Generation)** tekno
 - [Sistem Mimarisi](#-sistem-mimarisi)
 - [Kurulum](#-kurulum)
 - [Kullanım](#-kullanım)
-- [Streamlit Cloud'a Deploy](#-streamlit-clouda-deploy)
+- [Streamlit Cloud'da Deploy](#-streamlit-cloud'da-deploy)
 - [Sonuçlar ve Performans](#-sonuçlar-ve-performans)
 
 ---
@@ -252,7 +252,21 @@ Tarayıcınızda otomatik olarak `http://localhost:8501` açılacaktır.
 
 ### Örnek Soru-Cevap Ekran Görüntüleri
 
+1. Ana Arayüz - Yüklenen Doküman Sayısı
 
+![Ana Arayüz](images/screenshots/uploaded-documents.jpg)
+
+2. Sohbet Örneği 1
+  
+![Sohbet Örneği 1](images/screenshots/chat1.jpg)
+
+3. Sohbet Örneği 2
+   
+![Sohbet Örneği 2](images/screenshots/chat2.jpg)
+
+4. Sohbet Örneği 3
+   
+![Sohbet Örneği 3](images/screenshots/chat3.jpg)
 
 ### Örnek Sorular
 
@@ -270,7 +284,7 @@ Tarayıcınızda otomatik olarak `http://localhost:8501` açılacaktır.
 
 ---
 
-## ☁️ Streamlit Cloud'a Deploy
+## ☁️ Streamlit Cloud'da Deploy
 
 Bu uygulama **Streamlit Community Cloud** üzerinden yayınlanmıştır.
 
