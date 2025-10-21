@@ -250,6 +250,10 @@ Tarayıcınızda otomatik olarak `http://localhost:8501` açılacaktır.
 4. **Yanıt Alma:** "Ara" butonuna tıklayın ve Gemini'den yanıt alın
 5. **Kaynakları İnceleme:** Yanıtın altında kaynak dökümanları görüntüleyin
 
+### Örnek Soru-Cevap Ekran Görüntüleri
+
+
+
 ### Örnek Sorular
 
 - "Next.js'de server-side rendering nasıl yapılır?"
